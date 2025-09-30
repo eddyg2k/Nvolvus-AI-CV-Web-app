@@ -2,20 +2,63 @@
 @tailwind components;
 @tailwind utilities;
 
+/* keep dark UI defaults */
 :root { color-scheme: dark; }
-/* ===== Custom animations for Vercel-style intro ===== */
+
+/* ===== Animations (intro estilo Vercel) ===== */
 @keyframes spin-slow {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
-.animate-spin-slow {
-  animation: spin-slow 1.6s linear infinite;
-}
+.animate-spin-slow { animation: spin-slow 1.6s linear infinite; }
 
 @keyframes logo-pulse {
   0%, 100% { transform: translateZ(0) scale(1); opacity: 0.95; }
   50%      { transform: translateZ(0) scale(1.06); opacity: 1; }
 }
-.animate-logo-pulse {
-  animation: logo-pulse 1.6s ease-in-out infinite;
+.animate-logo-pulse { animation: logo-pulse 1.6s ease-in-out infinite; }
+
+/* ===== Gradient Pill Button (cyan→purple) ===== */
+.btn-continue {
+  --border: linear-gradient(90deg, #22d3ee, #a855f7);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: 0.9rem 1.4rem;
+  border-radius: 9999px;
+  font-weight: 700;
+  letter-spacing: .2px;
+  color: #e5e7eb;
+  background:
+    linear-gradient(#0b0b0b, #0b0b0b) padding-box,
+    var(--border) border-box;
+  border: 2px solid transparent;
+  box-shadow:
+    0 0 0px rgba(168,85,247,.0),
+    0 0 32px rgba(168,85,247,.12),
+    inset 0 0 0 rgba(0,0,0,0);
+  transition: transform .18s ease, box-shadow .2s ease, filter .2s ease;
 }
+
+.btn-continue:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 40px rgba(34,211,238,.22),
+    0 0 60px rgba(168,85,247,.25);
+  filter: brightness(1.06);
+}
+
+.btn-continue:active {
+  transform: translateY(0);
+  filter: brightness(0.98);
+}
+
+.btn-continue .sparkle {
+  font-size: 1rem;
+  opacity: .9;
+}
+
+/* focus state */
+.btn-continue:focus { outline: none; }
+.btn-continue:focus-visible { box-shadow: 0 0 0 3px rgba(168,85,247,.35); }
