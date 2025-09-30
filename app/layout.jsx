@@ -1,3 +1,5 @@
+import "./globals.css";
+
 export const metadata = {
   title: "Eddy Guzman — Interactive Resume for Nvolvus",
   description: "AI Voice • GHL • Funnels • WordPress"
