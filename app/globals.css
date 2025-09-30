@@ -3,3 +3,19 @@
 @tailwind utilities;
 
 :root { color-scheme: dark; }
+/* ===== Custom animations for Vercel-style intro ===== */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin-slow 1.6s linear infinite;
+}
+
+@keyframes logo-pulse {
+  0%, 100% { transform: translateZ(0) scale(1); opacity: 0.95; }
+  50%      { transform: translateZ(0) scale(1.06); opacity: 1; }
+}
+.animate-logo-pulse {
+  animation: logo-pulse 1.6s ease-in-out infinite;
+}
