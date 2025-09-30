@@ -1,108 +1,25 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// === Constantes ===
 const NVOLVUS_LOGO =
   "https://images.leadconnectorhq.com/image/f_webp/q_80/r_768/u_https://assets.cdn.filesafe.space/RuTIPgoZKQ63EmsFqUJv/media/679cf4d9aedcfafb37ecce08.png";
 
-// ======= Narrador (Web Speech) con preferencia de voz masculina =======
-function useNarrator(enabled) {
-  const synthRef = useRef(null);
-  const speakingRef = useRef(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      synthRef.current = window.speechSynthesis || null;
-      // precargar voces en algunos navegadores
-      window.speechSynthesis?.getVoices();
-    }
-  }, []);
-
-  const pickMaleVoice = () => {
-    if (!synthRef.current) return null;
-    const voices = synthRef.current.getVoices?.() || [];
-
-    // preferimos voces masculinas en inglés (Microsoft/Google/Common)
-    const maleHints = /david|daniel|matthew|john|guy|brian|mike|george|alex|matt|male/i;
-    let v =
-      voices.find((vv) => /en[-_](US|GB)/i.test(vv.lang) && maleHints.test(vv.name)) ||
-      voices.find((vv) => /en[-_](US|GB)/i.test(vv.lang)) ||
-      voices[0] ||
-      null;
-    return v;
-  };
-
-  const speakQueue = async (parts) => {
-    if (!enabled || !synthRef.current) return;
-    try { synthRef.current.cancel(); } catch {}
-    speakingRef.current = true;
-
-    const voice = pickMaleVoice();
-    for (const text of parts) {
-      if (!speakingRef.current) break;
-      await new Promise((resolve) => {
-        const u = new SpeechSynthesisUtterance(text);
-        u.lang = (voice && voice.lang) || "en-US";
-        u.voice = voice || null;
-        u.rate = 1.0;   // natural
-        u.pitch = 0.95; // más grave
-        u.volume = 1.0;
-        u.onend = resolve;
-        try { synthRef.current.speak(u); } catch { resolve(); }
-      });
-    }
-  };
-
-  const stop = () => {
-    speakingRef.current = false;
-    try { synthRef.current?.cancel(); } catch {}
-  };
-
-  return { speakQueue, stop };
-}
-
 export default function Page() {
-  // loadingIntro: splash de 5s al entrar
+  // Intro principal (5s)
   const [loadingIntro, setLoadingIntro] = useState(true);
-  // midTransition: splash de 2s entre pantallas
+  // Splash intermedio (2s) al pasar a la segunda pantalla
   const [midTransition, setMidTransition] = useState(false);
-  // step: 0 = hero, 1 = about/experience
+  // 0 = hero, 1 = about/experience
   const [step, setStep] = useState(0);
 
-  // voz
-  const [voiceOn, setVoiceOn] = useState(true);
-  const { speakQueue, stop } = useNarrator(voiceOn);
-
-  // ===== Intro inicial 5s =====
   useEffect(() => {
-    const t = setTimeout(() => setLoadingIntro(false), 5000);
+    const t = setTimeout(() => setLoadingIntro(false), 5000); // 5s como pediste
     return () => clearTimeout(t);
   }, []);
 
-  // Texto a narrar en la segunda pantalla
-  const narration = useMemo(
-    () => [
-      "About me. I’m Eddy Guzman, a bilingual AI architect and funnel strategist. I design voice agents, automate Go High Level, and ship modern web stacks.",
-      "Work experience. Five plus years building G H L for A Fine Shine in Texas and Oklahoma. Casa Window Cleaning and Evolution Paving in Canada. The Reservo dot live voice demo with no phone number. Legal workflow automation for Bill Gordon and Associates. Ten plus years remote leading teams in Mexico. Sales background with Close CRM and door to door."
-    ],
-    []
-  );
-
-  // Cuando paso a step 1, narra después de 400ms (si voiceOn)
-  useEffect(() => {
-    if (step === 1 && voiceOn) {
-      const t = setTimeout(() => speakQueue(narration), 400);
-      return () => {
-        clearTimeout(t);
-        stop();
-      };
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, voiceOn]);
-
-  // Variantes para animaciones sutiles
+  // Animaciones para la 2ª pantalla
   const container = {
     hidden: { opacity: 0 },
     show: { opacity: 1, transition: { staggerChildren: 0.18, delayChildren: 0.1 } }
@@ -112,10 +29,8 @@ export default function Page() {
     show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: "easeOut" } }
   };
 
-  // Manejar click en Continue de la primera pantalla
   const goToAbout = () => {
-    // splash intermedio 2s con logo grande
-    setMidTransition(true);
+    setMidTransition(true); // splash 2s con logo
     setTimeout(() => {
       setMidTransition(false);
       setStep(1);
@@ -127,7 +42,7 @@ export default function Page() {
       {/* halo morado sutil */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(80%_50%_at_50%_0%,rgba(168,85,247,0.18),transparent_60%),radial-gradient(60%_40%_at_50%_100%,rgba(168,85,247,0.12),transparent_60%)]" />
 
-      {/* ====== Splash inicial 5s ====== */}
+      {/* ===== Intro principal (5s) — restaurado tal cual lo tenías ===== */}
       <AnimatePresence>
         {loadingIntro && (
           <motion.div
@@ -138,18 +53,27 @@ export default function Page() {
             className="fixed inset-0 bg-black grid place-items-center z-50"
           >
             <div className="flex flex-col items-center gap-6">
-              <img
-                src={NVOLVUS_LOGO}
-                alt="Nvolvus"
-                className="h-20 w-auto select-none drop-shadow-lg animate-logo-pulse"
-              />
-              <div className="h-5 w-5 rounded-full border border-white/20 border-t-white/70 animate-spin-slow" />
+              <div className="relative">
+                <img
+                  src={NVOLVUS_LOGO}
+                  alt="Nvolvus"
+                  className="h-14 w-auto select-none drop-shadow-lg animate-logo-pulse"
+                />
+                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2">
+                  <div className="h-5 w-5 rounded-full border border-white/20 border-t-white/70 animate-spin-slow" />
+                </div>
+              </div>
+
+              <div className="text-center">
+                <p className="text-2xl font-semibold tracking-wide">Welcome Nvolvus AI</p>
+                <p className="text-sm text-white/60 mt-2">Authenticating experience…</p>
+              </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ====== Splash intermedio 2s ====== */}
+      {/* ===== Splash intermedio (2s) con solo el logo ===== */}
       <AnimatePresence>
         {midTransition && (
           <motion.div
@@ -168,7 +92,7 @@ export default function Page() {
         )}
       </AnimatePresence>
 
-      {/* ====== HERO (Pantalla 1) — NO LA TOCO, solo pegada aquí ====== */}
+      {/* ===== Pantalla 1 (HERO) — SIN CAMBIOS ===== */}
       {!loadingIntro && step === 0 && (
         <motion.section
           key="hero"
@@ -211,7 +135,7 @@ export default function Page() {
         </motion.section>
       )}
 
-      {/* ====== Pantalla 2 — ABOUT + EXPERIENCE, sin cajas ====== */}
+      {/* ===== Pantalla 2 — About + Experience (sin cajas) ===== */}
       {!loadingIntro && step === 1 && !midTransition && (
         <motion.section
           key="about"
@@ -220,26 +144,6 @@ export default function Page() {
           transition={{ duration: 0.45, ease: "easeOut" }}
           className="relative z-10 w-full"
         >
-          {/* voice controls */}
-          <div className="fixed right-4 top-4 z-20">
-            <div className="flex gap-2">
-              <button
-                className="px-3 py-1.5 rounded-md text-sm bg-white/10 border border-white/20 hover:bg-white/15"
-                onClick={() => setVoiceOn((v) => !v)}
-                title={voiceOn ? "Mute voice" : "Unmute voice"}
-              >
-                {voiceOn ? "🔊 Voice On" : "🔇 Voice Off"}
-              </button>
-              <button
-                className="px-3 py-1.5 rounded-md text-sm bg-white/10 border border-white/20 hover:bg-white/15"
-                onClick={() => { stop(); setTimeout(() => speakQueue(narration), 50); }}
-                title="Replay narration"
-              >
-                ⟳ Replay
-              </button>
-            </div>
-          </div>
-
           <motion.div
             variants={container}
             initial="hidden"
@@ -254,7 +158,7 @@ export default function Page() {
               About me & work experience
             </motion.h2>
 
-            {/* About text (sin caja) */}
+            {/* About */}
             <motion.div variants={item} className="mb-8">
               <h3 className="text-lg font-semibold text-purple-200 mb-2">About me</h3>
               <p className="text-white/85 leading-relaxed">
@@ -264,7 +168,7 @@ export default function Page() {
               </p>
             </motion.div>
 
-            {/* Chips de fortalezas */}
+            {/* Chips */}
             <motion.div variants={item} className="mb-8">
               <div className="flex flex-wrap gap-2">
                 {[
@@ -284,7 +188,7 @@ export default function Page() {
               </div>
             </motion.div>
 
-            {/* Work experience (sin caja) */}
+            {/* Experience */}
             <motion.div variants={item}>
               <h3 className="text-lg font-semibold text-purple-200 mb-2">Work experience — highlights</h3>
               <ul className="list-disc pl-6 space-y-2 text-white/90">
@@ -313,8 +217,7 @@ export default function Page() {
                 <button
                   className="btn-continue"
                   onClick={() => {
-                    stop();
-                    // aquí conectamos la tercera pantalla cuando la diseñemos
+                    // aquí conectamos la pantalla 3 cuando la diseñemos
                     alert("Next step: we’ll design screen 3 here.");
                   }}
                 >
