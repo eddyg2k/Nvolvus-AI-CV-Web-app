@@ -74,7 +74,7 @@ export default function Page() {
               </div>
 
               <p className="text-white/80">
-                <span className="font-semibold">Custom interactive résumé for you</span>, created to
+                <span className="font-semibold">Custom interactive résumé created by Eddy Guzman for you</span>,  to
                 showcase my skills in <span className="text-purple-300">Voice AI</span>,{" "}
                 <span className="text-purple-300">GoHighLevel</span>,{" "}
                 <span className="text-purple-300">WordPress funnels</span>, and{" "}
@@ -107,7 +107,7 @@ export default function Page() {
 
               {/* hint pequeño */}
               <p className="text-xs text-white/50">
-                5+ years building GoHighLevel systems (US & Canada): overflow agents, Angi intake, SMS flows, subaccounts.
+                5+ years building GoHighLevel systems (US & Canada): Ai Voice Agents, automation, funnels, pipelines, subaccounts.
               </p>
             </CardContent>
           </Card>
