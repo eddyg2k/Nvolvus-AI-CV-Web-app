@@ -70,7 +70,7 @@ export default function Page() {
 
             {/* Subcopy */}
             <p className="mt-5 text-white/80 text-lg sm:text-xl">
-              <span className="font-semibold">Custom interactive résumé for you</span>, created to showcase my skills.
+              <span className="font-semibold">Custom interactive résumé created by Eddy Guzman Custom for you</span>, to showcase my skills.
             </p>
 
             {/* Skill chips */}
