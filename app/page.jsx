@@ -163,7 +163,7 @@ export default function Page() {
               <h3 className="text-lg font-semibold text-purple-200 mb-2">About me</h3>
               <p className="text-white/85 leading-relaxed">
                 I’m <b>Eddy Guzman</b>, a bilingual AI architect and funnel strategist.
-                I build voice agents, automate GoHighLevel, and ship modern web stacks with Git and Vercel.
+                I build voice agents, automate GoHighLevel, and ship modern web stacks with Git render and Vercel; Wordpress is no problem.
                 Clear communication (English C2) and fast iteration are my style.
               </p>
             </motion.div>
@@ -197,13 +197,13 @@ export default function Page() {
                   Angi voice agent, subaccounts.
                 </li>
                 <li>
-                  <b>Casa Window Cleaning</b> & <b>Evolution Paving</b> (Canada): full GHL setup, AI agent, funnels.
+                  <b>Casa Window Cleaning</b> & <b>Evolution Paving</b> (Canada): full GHL setup, AI agent, marketing and door to door sales.
                 </li>
                 <li>
-                  <b>Reservo.live</b>: voice AI booking demo with no phone number.
+                  <b>Reservo.live</b>: voice AI booking demo with no phone number, original code.
                 </li>
                 <li>
-                  <b>Bill Gordon & Associates</b> (law): paralegal task automation in GHL.
+                  <b>Bill Gordon & Associates</b> (law): paralegal task automation with VB back in the days.
                 </li>
                 <li>
                   <b>10+ years remote</b>: recruiting, training, and legal/payroll setup for MX teams.
