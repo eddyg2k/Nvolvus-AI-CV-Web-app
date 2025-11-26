@@ -73,7 +73,7 @@ function BallPitCanvas() {
   );
 }
 
-function ElasticDemoCanvas({ demos }) {
+function ElasticScene({ demos }) {
   const palette = ["#38bdf8", "#a855f7", "#60a5fa", "#22d3ee", "#c084fc", "#7dd3fc"];
   const orbit = 6.6;
   const groupRef = useRef();
@@ -85,45 +85,51 @@ function ElasticDemoCanvas({ demos }) {
   });
 
   return (
+    <group ref={groupRef}>
+      <Float speed={2} rotationIntensity={1.2} floatIntensity={1.5}>
+        <mesh>
+          <icosahedronGeometry args={[3.2, 24]} />
+          <MeshDistortMaterial color="#1e3a8a" speed={2.4} distort={0.44} roughness={0.28} metalness={0.4} />
+        </mesh>
+      </Float>
+
+      {demos.map((demo, i) => {
+        const angle = (i / demos.length) * Math.PI * 2;
+        const x = Math.cos(angle) * orbit;
+        const y = Math.sin(angle) * (orbit * 0.48);
+        const z = Math.sin(angle * 1.4) * 1.8;
+        return (
+          <Float key={demo.title} speed={1.4} rotationIntensity={0.9} floatIntensity={1.2}>
+            <mesh position={[x, y, z]}>
+              <sphereGeometry args={[0.55, 36, 36]} />
+              <meshStandardMaterial
+                color={palette[i % palette.length]}
+                emissive={palette[i % palette.length]}
+                emissiveIntensity={0.25}
+                roughness={0.2}
+                metalness={0.55}
+              />
+              <Html center>
+                <div className="demo-chip">
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-200/80">{demo.tag}</p>
+                  <p className="text-sm font-semibold text-white">{demo.title}</p>
+                </div>
+              </Html>
+            </mesh>
+          </Float>
+        );
+      })}
+    </group>
+  );
+}
+
+function ElasticDemoCanvas({ demos }) {
+  return (
     <Canvas camera={{ position: [0, 0, 11], fov: 55 }} className="rounded-3xl ring-1 ring-white/5">
       <color attach="background" args={["#040b1b"]} />
       <ambientLight intensity={0.9} />
       <directionalLight position={[6, 6, 5]} intensity={1.2} color="#93c5fd" />
-      <group ref={groupRef}>
-        <Float speed={2} rotationIntensity={1.2} floatIntensity={1.5}>
-          <mesh>
-            <icosahedronGeometry args={[3.2, 24]} />
-            <MeshDistortMaterial color="#1e3a8a" speed={2.4} distort={0.44} roughness={0.28} metalness={0.4} />
-          </mesh>
-        </Float>
-
-        {demos.map((demo, i) => {
-          const angle = (i / demos.length) * Math.PI * 2;
-          const x = Math.cos(angle) * orbit;
-          const y = Math.sin(angle) * (orbit * 0.48);
-          const z = Math.sin(angle * 1.4) * 1.8;
-          return (
-            <Float key={demo.title} speed={1.4} rotationIntensity={0.9} floatIntensity={1.2}>
-              <mesh position={[x, y, z]}>
-                <sphereGeometry args={[0.55, 36, 36]} />
-                <meshStandardMaterial
-                  color={palette[i % palette.length]}
-                  emissive={palette[i % palette.length]}
-                  emissiveIntensity={0.25}
-                  roughness={0.2}
-                  metalness={0.55}
-                />
-                <Html center>
-                  <div className="demo-chip">
-                    <p className="text-xs uppercase tracking-[0.18em] text-slate-200/80">{demo.tag}</p>
-                    <p className="text-sm font-semibold text-white">{demo.title}</p>
-                  </div>
-                </Html>
-              </mesh>
-            </Float>
-          );
-        })}
-      </group>
+      <ElasticScene demos={demos} />
       <OrbitControls enablePan={false} enableZoom={false} autoRotate autoRotateSpeed={0.55} />
     </Canvas>
   );
