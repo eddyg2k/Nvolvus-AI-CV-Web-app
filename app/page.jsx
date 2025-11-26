@@ -1,404 +1,472 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion, useInView } from "framer-motion";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { ContactShadows, Float, Html, MeshDistortMaterial, OrbitControls } from "@react-three/drei";
+import { easing } from "maath";
+import * as THREE from "three";
 
-const NVOLVUS_LOGO =
-  "https://images.leadconnectorhq.com/image/f_webp/q_80/r_768/u_https://assets.cdn.filesafe.space/RuTIPgoZKQ63EmsFqUJv/media/679cf4d9aedcfafb37ecce08.png";
+const BRAND_NAME = "PROSPECTIVITY";
+const LOGO_SRC = "/prospectivity-logo.svg";
 
-export default function Page() {
-  // Intro principal (5s)
-  const [loadingIntro, setLoadingIntro] = useState(true);
-  // Splash intermedio (2s) entre pantallas
-  const [midTransition, setMidTransition] = useState(false);
-  // 0 = hero, 1 = about/experience, 2 = AI examples, 3 = thank you
-  const [step, setStep] = useState(0);
+const sectionVariants = {
+  hidden: { opacity: 0, y: 26 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.55, ease: "easeOut" } },
+};
+
+function BallPit({ count = 64 }) {
+  const meshRef = useRef();
+  const dummy = useMemo(() => new THREE.Object3D(), []);
+  const colors = useMemo(
+    () => ["#7dd3fc", "#a855f7", "#38bdf8", "#c4b5fd", "#60a5fa"].map((c) => new THREE.Color(c)),
+    []
+  );
 
   useEffect(() => {
-    const t = setTimeout(() => setLoadingIntro(false), 5000); // 5s
-    return () => clearTimeout(t);
-  }, []);
+    if (!meshRef.current) return;
+    for (let i = 0; i < count; i++) {
+      meshRef.current.setColorAt(i, colors[i % colors.length]);
+    }
+    meshRef.current.instanceColor.needsUpdate = true;
+  }, [colors, count]);
 
-  // Animaciones para pantallas de contenido
-  const container = {
-    hidden: { opacity: 0 },
-    show: { opacity: 1, transition: { staggerChildren: 0.18, delayChildren: 0.1 } },
-  };
-  const item = {
-    hidden: { opacity: 0, y: 14 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: "easeOut" } },
-  };
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime();
+    for (let i = 0; i < count; i++) {
+      const radius = 3.2 + Math.sin(i) * 0.4;
+      const x = Math.sin(t * 0.6 + i * 0.85) * radius;
+      const y = Math.cos(t * 0.5 + i * 1.1) * 1.8 + Math.sin(t * 0.9 + i * 0.3) * 0.9;
+      const z = Math.cos(t * 0.7 + i * 0.6) * 2.6;
+      const scale = 0.4 + 0.18 * Math.sin(t + i * 0.5);
 
-  // Navegación con splash 2s
-  const goWithSplash = (nextStep) => {
-    setMidTransition(true);
-    setTimeout(() => {
-      setMidTransition(false);
-      setStep(nextStep);
-      try { window.scrollTo({ top: 0, behavior: "instant" }); } catch {}
-    }, 2000);
-  };
-  const goToAbout = () => goWithSplash(1);
-  const goToExamples = () => goWithSplash(2);
-  const goToFinish = () => goWithSplash(3);
-  const restart = () => goWithSplash(0);
+      dummy.position.set(x, y, z);
+      dummy.scale.setScalar(scale + 0.35);
+      dummy.rotation.set(Math.sin(t + i) * 0.6, Math.cos(t * 0.8 + i) * 0.6, 0);
+      dummy.updateMatrix();
+      meshRef.current.setMatrixAt(i, dummy.matrix);
+    }
+    meshRef.current.instanceMatrix.needsUpdate = true;
+  });
 
   return (
-    <main className="min-h-screen bg-black text-white relative overflow-hidden">
-      {/* halo morado sutil */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(80%_50%_at_50%_0%,rgba(168,85,247,0.18),transparent_60%),radial-gradient(60%_40%_at_50%_100%,rgba(168,85,247,0.12),transparent_60%)]" />
+    <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
+      <sphereGeometry args={[0.45, 42, 42]} />
+      <meshStandardMaterial vertexColors metalness={0.55} roughness={0.25} />
+    </instancedMesh>
+  );
+}
 
-      {/* ===== Intro principal (5s) ===== */}
-      <AnimatePresence>
-        {loadingIntro && (
-          <motion.div
-            key="intro-5s"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black grid place-items-center z-50"
-          >
-            <div className="flex flex-col items-center gap-6">
-              <div className="relative">
-                <img
-                  src={NVOLVUS_LOGO}
-                  alt="Nvolvus"
-                  className="h-14 w-auto select-none drop-shadow-lg animate-logo-pulse"
+function BallPitCanvas() {
+  return (
+    <Canvas camera={{ position: [0, 0, 10], fov: 52 }} className="rounded-3xl ring-1 ring-white/5">
+      <color attach="background" args={["#050d1f"]} />
+      <ambientLight intensity={0.9} />
+      <pointLight position={[4, 4, 6]} intensity={2.2} color="#93c5fd" />
+      <pointLight position={[-4, -2, -4]} intensity={1.2} color="#a855f7" />
+      <Float speed={1.6} floatIntensity={1} rotationIntensity={0.8}>
+        <BallPit />
+      </Float>
+      <OrbitControls enablePan={false} enableZoom={false} autoRotate autoRotateSpeed={0.6} />
+      <ContactShadows position={[0, -2.8, 0]} opacity={0.32} blur={2.8} far={4.5} />
+    </Canvas>
+  );
+}
+
+function ElasticDemoCanvas({ demos }) {
+  const palette = ["#38bdf8", "#a855f7", "#60a5fa", "#22d3ee", "#c084fc", "#7dd3fc"];
+  const orbit = 6.6;
+  const groupRef = useRef();
+
+  useFrame((state, delta) => {
+    if (!groupRef.current) return;
+    const time = state.clock.getElapsedTime();
+    easing.dampE(groupRef.current.rotation, [Math.sin(time * 0.08) * 0.08, time * 0.12, 0], 0.2, delta);
+  });
+
+  return (
+    <Canvas camera={{ position: [0, 0, 11], fov: 55 }} className="rounded-3xl ring-1 ring-white/5">
+      <color attach="background" args={["#040b1b"]} />
+      <ambientLight intensity={0.9} />
+      <directionalLight position={[6, 6, 5]} intensity={1.2} color="#93c5fd" />
+      <group ref={groupRef}>
+        <Float speed={2} rotationIntensity={1.2} floatIntensity={1.5}>
+          <mesh>
+            <icosahedronGeometry args={[3.2, 24]} />
+            <MeshDistortMaterial color="#1e3a8a" speed={2.4} distort={0.44} roughness={0.28} metalness={0.4} />
+          </mesh>
+        </Float>
+
+        {demos.map((demo, i) => {
+          const angle = (i / demos.length) * Math.PI * 2;
+          const x = Math.cos(angle) * orbit;
+          const y = Math.sin(angle) * (orbit * 0.48);
+          const z = Math.sin(angle * 1.4) * 1.8;
+          return (
+            <Float key={demo.title} speed={1.4} rotationIntensity={0.9} floatIntensity={1.2}>
+              <mesh position={[x, y, z]}>
+                <sphereGeometry args={[0.55, 36, 36]} />
+                <meshStandardMaterial
+                  color={palette[i % palette.length]}
+                  emissive={palette[i % palette.length]}
+                  emissiveIntensity={0.25}
+                  roughness={0.2}
+                  metalness={0.55}
                 />
-                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2">
-                  <div className="h-5 w-5 rounded-full border border-white/20 border-t-white/70 animate-spin-slow" />
-                </div>
-              </div>
+                <Html center>
+                  <div className="demo-chip">
+                    <p className="text-xs uppercase tracking-[0.18em] text-slate-200/80">{demo.tag}</p>
+                    <p className="text-sm font-semibold text-white">{demo.title}</p>
+                  </div>
+                </Html>
+              </mesh>
+            </Float>
+          );
+        })}
+      </group>
+      <OrbitControls enablePan={false} enableZoom={false} autoRotate autoRotateSpeed={0.55} />
+    </Canvas>
+  );
+}
 
-              <div className="text-center">
-                <p className="text-2xl font-semibold tracking-wide">Welcome Nvolvus AI</p>
-                <p className="text-sm text-white/60 mt-2">Authenticating experience…</p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ===== Splash intermedio (2s) con solo el logo ===== */}
-      <AnimatePresence>
-        {midTransition && (
+function SectionShell({ title, kicker, children, dark = false }) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, amount: 0.3 });
+  return (
+    <section ref={ref} className={`section-shell ${dark ? "section-shell-dark" : ""}`}>
+      <motion.div
+        variants={sectionVariants}
+        initial="hidden"
+        animate={inView ? "visible" : "hidden"}
+        className="max-w-6xl mx-auto px-6"
+      >
+        <div className="flex items-center gap-3 mb-6">
+          <motion.span
+            className="kicker"
+            initial={{ opacity: 0, y: 10 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ delay: 0.1, duration: 0.45 }}
+          >
+            {kicker}
+          </motion.span>
           <motion.div
-            key="intro-2s"
+            className="flex items-center gap-2 text-sm text-sky-100/80"
+            initial={{ opacity: 0, y: 10 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ delay: 0.16, duration: 0.45 }}
+          >
+            <div className="h-px w-10 bg-gradient-to-r from-cyan-400/60 to-purple-400/50" />
+            <span>Scroll to explore</span>
+          </motion.div>
+        </div>
+        <div className="flex items-start justify-between flex-col gap-6 sm:flex-row sm:items-center">
+          <motion.h2
+            className="text-3xl sm:text-4xl font-extrabold tracking-tight text-sky-50"
+            initial={{ opacity: 0, y: 18 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ delay: 0.12, duration: 0.55 }}
+          >
+            {title}
+          </motion.h2>
+          <motion.img
+            src={LOGO_SRC}
+            alt={`${BRAND_NAME} logo`}
+            className="h-10 w-auto drop-shadow-lg logo-spin"
+            initial={{ rotate: 0, opacity: 0 }}
+            animate={inView ? { rotate: 360, opacity: 1 } : {}}
+            transition={{ duration: 1.8, ease: "linear" }}
+          />
+        </div>
+        {children}
+      </motion.div>
+    </section>
+  );
+}
+
+export default function Page() {
+  const [intro, setIntro] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIntro(false), 3200);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const competencies = [
+    {
+      title: "Voice + workflow AI",
+      copy: "Ballpit-grade 3D energy paired with conversational design: phoneless voice agents, GHL automation, and realtime routing across CRM + calendars.",
+      items: ["Live socket + RTC orchestration", "Guardrails with rapid prompt sprints", "Elastic workflows that mirror ops"],
+    },
+    {
+      title: "Product storytelling",
+      copy: "I ship dark, sleek experiences that stay performant—Framer Motion, Tailwind, and custom shaders when we need a memorable moment.",
+      items: ["Micro-interactions across scroll", "Composable UI tokens", "Dark-blue premium palette"],
+    },
+    {
+      title: "Systems integration",
+      copy: "Reservo-style booking flows, Discord classrooms, and direct API experiments with model overrides that can pivot quickly.",
+      items: ["Reservo.ai direct API hooks", "Discord widget + mod tools", "Model swap friendly contracts"],
+    },
+  ];
+
+  const workflow = [
+    {
+      title: "Reservo.ai direct API",
+      detail:
+        "Use the same booking endpoint and payloads you already trust. Swap models when needed; the UX keeps the conversation flowing across this page without clicks.",
+      badge: "Booking AI",
+    },
+    {
+      title: "Discord classroom",
+      detail:
+        "Live widget seats on the page keep community close. Announcements, office hours, and AI coaching all live beside the demos for instant proof.",
+      badge: "Community",
+    },
+    {
+      title: "Prospecting layer",
+      detail:
+        "Workflow cards + 3D canvases show off skills while mapping directly to your CRM. Elastic hero shows the jump from awareness to booked calls.",
+      badge: "Pipeline",
+    },
+  ];
+
+  const demos = [
+    { title: "Phoneless AI Agent", tag: "reserv" },
+    { title: "Custom GPT Guide", tag: "assistant" },
+    { title: "Interactive Clusters", tag: "ux" },
+    { title: "Discord Classroom", tag: "community" },
+    { title: "Overflow AI Agent", tag: "voice" },
+    { title: "Multilingual Onboarding", tag: "global" },
+  ];
+
+  return (
+    <main className="min-h-screen bg-sapphire text-sky-50 relative overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_10%,rgba(59,130,246,0.14),transparent_60%),radial-gradient(70%_60%_at_80%_70%,rgba(168,85,247,0.18),transparent_60%)]" />
+      <div className="pointer-events-none absolute inset-0 opacity-50 mix-blend-screen" aria-hidden>
+        <div className="absolute inset-y-0 left-1/2 w-px bg-gradient-to-b from-transparent via-white/20 to-transparent" />
+      </div>
+
+      <AnimatePresence>
+        {intro && (
+          <motion.div
+            key="intro"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black grid place-items-center z-40"
+            className="fixed inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 grid place-items-center z-50"
           >
-            <img
-              src={NVOLVUS_LOGO}
-              alt="Nvolvus"
-              className="h-20 w-auto select-none drop-shadow-lg animate-logo-pulse"
-            />
+            <motion.div
+              initial={{ scale: 0.94, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.45, ease: "easeOut" }}
+              className="flex flex-col items-center gap-5"
+            >
+              <motion.img
+                src={LOGO_SRC}
+                alt={`${BRAND_NAME} logo`}
+                className="h-16 w-auto drop-shadow-2xl animate-logo-pulse"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2.6, repeat: Infinity, ease: "linear" }}
+              />
+              <div className="text-center space-y-2">
+                <p className="text-sm uppercase tracking-[0.2em] text-slate-200/80">{BRAND_NAME}</p>
+                <p className="text-2xl font-semibold text-white">Shaping elastic AI experiences</p>
+              </div>
+              <div className="h-5 w-5 rounded-full border border-white/20 border-t-cyan-200 animate-spin-slow" />
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ===== Pantalla 1 (HERO) — intacta ===== */}
-      {!loadingIntro && step === 0 && (
-        <motion.section
-          key="hero"
-          initial={{ opacity: 0, y: 14, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.45, ease: "easeOut" }}
-          className="relative z-10 w-full"
-        >
-          <div className="mx-auto max-w-4xl px-6 pt-24 pb-28 text-center">
-            <div className="flex items-center justify-center gap-4">
-              <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight">Welcome</h1>
-              <img src={NVOLVUS_LOGO} alt="Nvolvus" className="h-8 sm:h-9 w-auto opacity-90" />
-            </div>
+      <header className="sticky top-0 z-30 backdrop-blur-xl bg-slate-950/60 border-b border-white/5">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center gap-4">
+          <motion.img
+            src={LOGO_SRC}
+            alt={`${BRAND_NAME} mark`}
+            className="h-10 w-auto drop-shadow-md logo-spin"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 12, ease: "linear", repeat: Infinity }}
+          />
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-sky-200/80">{BRAND_NAME}</p>
+            <p className="text-base text-white/80">Phoneless AI | Dark webcraft | Discord-native demos</p>
+          </div>
+          <div className="ml-auto flex items-center gap-3 text-sm text-white/70">
+            <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden />
+            Live scroll—no clicks required
+          </div>
+        </div>
+      </header>
 
-            <p className="mt-5 text-white/80 text-lg sm:text-xl">
-              <span className="font-semibold">Custom interactive résumé for you</span>, created to showcase my skills.
+      <section className="pt-16 pb-20 relative z-10">
+        <div className="max-w-6xl mx-auto px-6 grid gap-10 lg:grid-cols-[1.1fr_0.9fr] items-center">
+          <div className="space-y-6">
+            <p className="text-xs uppercase tracking-[0.25em] text-sky-200/80">Dark blue hero</p>
+            <h1 className="text-4xl sm:text-5xl font-extrabold leading-tight text-sky-50">
+              Prospectivity is a scroll-first, cinematic résumé that blends 3D energy with
+              <span className="text-cyan-300"> Reservo.ai</span> booking flows and Discord-native support.
+            </h1>
+            <p className="text-lg text-slate-200/80 max-w-2xl">
+              Every section is animated as you scroll—no CTA clicks. The logo spins on each transition and the
+              ballpit keeps the hero alive while we showcase the stack: voice AI, workflows, booking demos, and
+              community.
             </p>
-
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-              {["GoHighLevel", "WordPress/Funnels", "Voice AI", "CRM", "English C2"].map((t) => (
-                <span
-                  key={t}
-                  className="px-3 py-1 rounded-full text-sm bg-white/5 text-white/90 border border-purple-500/30"
-                >
-                  {t}
+            <div className="flex flex-wrap gap-2">
+              {["Voice AI", "Reservo API", "Discord classroom", "GHL automation", "3D scroll effects"].map((tag) => (
+                <span key={tag} className="pill">
+                  {tag}
                 </span>
               ))}
             </div>
-
-            <div className="mt-10">
-              <button onClick={goToAbout} className="btn-continue" aria-label="Continue">
-                Continue <span className="sparkle" aria-hidden="true">✨</span>
-              </button>
-            </div>
           </div>
-        </motion.section>
-      )}
+          <div className="relative">
+            <div className="absolute -inset-6 bg-gradient-to-br from-cyan-500/10 via-purple-500/8 to-transparent blur-3xl" aria-hidden />
+            <BallPitCanvas />
+          </div>
+        </div>
+      </section>
 
-      {/* ===== Pantalla 2 — About + Experience ===== */}
-      {!loadingIntro && step === 1 && !midTransition && (
-        <motion.section
-          key="about"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.45, ease: "easeOut" }}
-          className="relative z-10 w-full"
-        >
-          <motion.div
-            variants={container}
-            initial="hidden"
-            animate="show"
-            className="mx-auto max-w-4xl px-6 pt-20 pb-24"
-          >
-            <motion.h2 variants={item} className="text-center text-3xl sm:text-4xl font-extrabold tracking-tight mb-10">
-              About me & work experience
-            </motion.h2>
-
-            <motion.div variants={item} className="mb-8">
-              <h3 className="text-lg font-semibold text-purple-200 mb-2">About me</h3>
-              <p className="text-white/85 leading-relaxed">
-                I’m <b>Eddy Guzman</b>, a bilingual AI architect and funnel strategist.
-                I build voice agents, automate GoHighLevel, and ship modern web stacks with Git render and Vercel; Wordpress is no problem.
-                Clear communication (English C2) and fast iteration are my style.
-              </p>
-            </motion.div>
-
-            <motion.div variants={item} className="mb-8">
-              <div className="flex flex-wrap gap-2">
-                {[
-                  "Voice AI Architect",
-                  "GoHighLevel Automation",
-                  "WordPress Funnels",
-                  "CRM Management",
-                  "English C2",
-                ].map((c) => (
-                  <span
-                    key={c}
-                    className="px-3 py-1 rounded-full text-sm bg-white/5 text-white/90 border border-purple-500/30"
-                  >
-                    {c}
-                  </span>
+      <SectionShell title="Capabilities with motion" kicker="Skill stack">
+        <div className="grid gap-6 md:grid-cols-3">
+          {competencies.map((block) => (
+            <div key={block.title} className="glass-card">
+              <p className="text-sm uppercase tracking-[0.22em] text-sky-200/80 mb-2">{block.title}</p>
+              <p className="text-sm text-slate-200/80 mb-4 leading-relaxed">{block.copy}</p>
+              <ul className="space-y-2 text-sm text-sky-50/90">
+                {block.items.map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-cyan-300 mt-1" />
+                    <span>{item}</span>
+                  </li>
                 ))}
-              </div>
-            </motion.div>
-
-            <motion.div variants={item}>
-              <h3 className="text-lg font-semibold text-purple-200 mb-2">Work experience — highlights</h3>
-              <ul className="list-disc pl-6 space-y-2 text-white/90">
-                <li>
-                  <b>A Fine Shine</b> (TX & OK): 5+ years in GHL — workflows, SMS blasts, overflow AI agent,
-                  Angi voice agent, subaccounts.
-                </li>
-                <li>
-                  <b>Casa Window Cleaning</b> & <b>Evolution Paving</b> (Canada): full GHL setup, AI agent, marketing and door to door sales.
-                </li>
-                <li>
-                  <b>Reservo.live</b>: voice AI booking demo with no phone number, original code.
-                </li>
-                <li>
-                  <b>Bill Gordon & Associates</b> (law): paralegal task automation with VB back in the days.
-                </li>
-                <li>
-                  <b>10+ years remote</b>: recruiting, training, and legal/payroll setup for MX teams.
-                </li>
-                <li>
-                  <b>Sales</b>: Close CRM, funnels, and door-to-door experience.
-                </li>
               </ul>
-
-              <div className="mt-10 flex justify-center">
-                <button className="btn-continue" onClick={goToExamples}>
-                  Continue <span className="sparkle" aria-hidden="true">✨</span>
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        </motion.section>
-      )}
-
-      {/* ===== Pantalla 3 — AI Examples ===== */}
-      {!loadingIntro && step === 2 && !midTransition && (
-        <motion.section
-          key="examples"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.45, ease: "easeOut" }}
-          className="relative z-10 w-full"
-        >
-          {/* Widget Discord fijo (desktop) */}
-          <div className="fixed bottom-4 right-4 z-20 hidden md:block">
-            <div className="rounded-xl overflow-hidden border border-white/10 shadow-[0_0_40px_rgba(168,85,247,0.18)] bg-black/50 backdrop-blur">
-              <iframe
-                src="https://discord.com/widget?id=1419830884202315788&theme=dark"
-                width="350"
-                height="500"
-                allowTransparency={true}
-                frameBorder="0"
-                sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"
-                title="Discord Widget"
-              />
             </div>
-          </div>
+          ))}
+        </div>
+      </SectionShell>
 
-          {/* md:pr-[380px] para no tapar el texto con el widget */}
-          <motion.div
-            variants={container}
-            initial="hidden"
-            animate="show"
-            className="mx-auto max-w-4xl px-6 pt-20 pb-28 md:pr-[380px]"
-          >
-            <motion.h2 variants={item} className="text-center text-3xl sm:text-4xl font-extrabold tracking-tight mb-10">
-              AI examples & live demos
-            </motion.h2>
-
-            {/* Reservo.live */}
-            <motion.div variants={item} className="space-y-3 mb-10">
-              <h3 className="text-lg font-semibold text-purple-200">
-                Phoneless Voice AI — Reservo.live
-              </h3>
-              <p className="text-white/85 leading-relaxed">
-                This is a simple demo originally created for restaurants to showcase the core idea:
-                a <b>phoneless AI voice agent</b> that talks through the browser without triggering a phone call.
-                <br /><br />
-                <b>How to test:</b> click the button to start the agent, grant microphone access, and note the socket is
-                deliberately delayed to avoid random usage. You might need to <b>refresh the page a couple of times</b> until
-                you reach the AI. Once connected, talk to it and try a booking-type interaction.
-              </p>
-              <a href="https://www.reservo.live/" target="_blank" rel="noreferrer">
-                <button className="btn-continue">Try it out</button>
-              </a>
-            </motion.div>
-
-            {/* Custom GPT */}
-            <motion.div variants={item} className="space-y-3 mb-10">
-              <h3 className="text-lg font-semibold text-purple-200">
-                Elementary English Assistant (Custom GPT)
-              </h3>
-              <p className="text-white/85 leading-relaxed">
-                <b>Work in progress.</b> A bilingual assistant meant to guide learners across the platform:
-                organizing tasks, answering questions, and tracking progress. The same approach can be adapted
-                to <b>any industry</b> and paired with <b>phoneless AI voice agent interactions</b> for hands-free flows.
-              </p>
-              <a
-                href="https://chatgpt.com/g/g-68369b7ab0848191a1c34fdb0586819b-elemental-english-assistant"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <button className="btn-continue">Try it out</button>
-              </a>
-            </motion.div>
-
-            {/* Clusters (GoDaddy) */}
-            <motion.div variants={item} className="space-y-3 mb-10">
-              <h3 className="text-lg font-semibold text-purple-200">
-                Interactive clusters (platform demo)
-              </h3>
-              <p className="text-white/85 leading-relaxed">
-                This demo is an <b>embedded HTML</b> inside a GoDaddy Site Builder page (similar to WordPress).
-                Template builders are great for speed, but they’re <b>template-constrained</b>, so original,
-                fully interactive designs can be harder. These are just <b>demo activity modules</b> to preview the idea;
-                production can move to a more flexible stack (Git + Vercel/Render) for a truly custom experience.
-              </p>
-              <a
-                href="https://elementalenglishmethod.godaddysites.com/activities-testing"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <button className="btn-continue">Try it out</button>
-              </a>
-            </motion.div>
-
-            {/* Discord classroom */}
-            <motion.div variants={item} className="space-y-3 mb-10">
-              <h3 className="text-lg font-semibold text-purple-200">Discord classroom (live community)</h3>
-              <p className="text-white/85 leading-relaxed">
-                The widget on the right connects directly to my <b>online teaching classroom</b> for students.
-                It’s a custom server for my private English courses, and the plan is to onboard more teachers to
-                become an <b>online school</b>. This is an <b>8-year project</b> in constant growth — events, voice channels,
-                and real-time support are part of the experience.
-              </p>
-              <a
-                href="https://discord.com/widget?id=1419830884202315788&theme=dark"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <button className="btn-continue">Open classroom</button>
-              </a>
-            </motion.div>
-
-            {/* Loom video */}
-            <motion.div variants={item} className="space-y-3 mb-12">
-              <h3 className="text-lg font-semibold text-purple-200">
-                After-hours / overflow AI agent (GHL) — Loom walkthrough
-              </h3>
-              <p className="text-white/85 leading-relaxed">
-                A video tour of a <b>custom AI voice agent</b> built for GoHighLevel and used by A Fine Shine.
-                It’s been upgraded over time and, more importantly, it has <b>field experience</b> — the prompts,
-                guardrails, and settings have been refined continuously. As of now, it’s one of the <b>strongest,
-                production-tested setups</b> in the space, designed and iterated by me since the feature launched in GHL.
-              </p>
-              <a
-                href="https://www.loom.com/share/8a043524e6a940c7b64c06e32ac6329a?sid=47ab2b3d-6a96-4a44-87a9-5263b0f496d8"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <button className="btn-continue">Watch video</button>
-              </a>
-            </motion.div>
-
-            {/* Contacto + Finish */}
-            <motion.div variants={item} className="text-center text-white/80 mb-10">
-              <p className="mb-1">Contact</p>
-              <p className="text-white">
-                <a className="underline underline-offset-4 hover:text-purple-300" href="tel:+529999053013">
-                  +52 999 905 3013
-                </a>{" "}
-                •{" "}
-                <a
-                  className="underline underline-offset-4 hover:text-purple-300"
-                  href="mailto:eduardoguzmanq@gmail.com"
-                >
-                  eduardoguzmanq@gmail.com
-                </a>
-              </p>
-            </motion.div>
-
-            <motion.div variants={item} className="flex justify-center">
-              <button className="btn-continue" onClick={goToFinish}>
-                Finish
-              </button>
-            </motion.div>
-          </motion.div>
-        </motion.section>
-      )}
-
-      {/* ===== Pantalla 4 — Thank you ===== */}
-      {!loadingIntro && step === 3 && !midTransition && (
-        <motion.section
-          key="thankyou"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.45, ease: "easeOut" }}
-          className="relative z-10 w-full"
-        >
-          <div className="mx-auto max-w-4xl px-6 pt-28 pb-28 text-center">
-            <div className="flex items-center justify-center gap-4 mb-6">
-              <img src={NVOLVUS_LOGO} alt="Nvolvus" className="h-10 w-auto opacity-95" />
-              <h2 className="text-4xl font-extrabold tracking-tight">Thank you</h2>
-            </div>
-            <p className="text-white/80">
-              If you’d like, we can jump on a quick call to discuss your stack and where AI can add leverage.
+      <SectionShell title="Reservo.ai + workflow lane" kicker="Demo runway" dark>
+        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr] items-stretch">
+          <div className="glass-card gradient-border h-full">
+            <p className="text-base font-semibold text-sky-50 mb-3">Reservo booking API — direct + model-flexible</p>
+            <p className="text-sm text-slate-200/80 leading-relaxed mb-4">
+              We keep your existing booking endpoint and payload, adding a model-agnostic handshake so we can swap
+              providers without touching the UI. Latency budgets and retries are visible, and the conversation keeps
+              flowing in-page.
             </p>
-            <div className="mt-10 flex justify-center">
-              <button className="btn-continue" onClick={restart}>
-                Restart
-              </button>
+            <div className="code-block">
+              <p className="text-xs text-cyan-200 mb-2">/api/reservo/booking</p>
+              <pre className="text-xs text-slate-100/90 whitespace-pre-wrap leading-relaxed">
+{`POST /api/reservo/booking
+{
+  "guest": "walk-in or voice", 
+  "preferred_model": "gpt-4o-mini",
+  "intent": "reserve_table",
+  "notes": "no phone, browser only"
+}`}              </pre>
+              <p className="text-[11px] text-slate-300/80 mt-2">
+                Swap <span className="text-cyan-200">preferred_model</span> to test responses. Voice agent mirrors this with
+                a socket delay guard so the UX feels intentional.
+              </p>
             </div>
           </div>
-        </motion.section>
-      )}
+          <div className="space-y-4">
+            {workflow.map((step) => (
+              <div key={step.title} className="glass-card flex items-start gap-4">
+                <div className="pill pill-glow">{step.badge}</div>
+                <div>
+                  <p className="text-base font-semibold text-sky-50">{step.title}</p>
+                  <p className="text-sm text-slate-200/80 leading-relaxed">{step.detail}</p>
+                </div>
+              </div>
+            ))}
+            <div className="glass-card">
+              <p className="text-sm uppercase tracking-[0.22em] text-sky-200/80 mb-2">Discord widget (live)</p>
+              <div className="rounded-2xl overflow-hidden border border-white/10 shadow-[0_0_40px_rgba(56,189,248,0.15)]">
+                <iframe
+                  src="https://discord.com/widget?id=1419830884202315788&theme=dark"
+                  width="100%"
+                  height="280"
+                  allowTransparency
+                  frameBorder="0"
+                  sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"
+                  title="Discord Widget"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </SectionShell>
+
+      <SectionShell title="Interactive elastic canvas" kicker="Live demos" dark>
+        <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr] items-center">
+          <div className="glass-card space-y-4 order-2 lg:order-1">
+            <p className="text-sm uppercase tracking-[0.22em] text-sky-200/80">Hover, scroll, orbit</p>
+            <p className="text-lg text-slate-200/80 leading-relaxed">
+              The canvas on the right is elastic: a distorted icosahedron pulses with the scroll while labeled spheres
+              represent each demo. It stays dark, sleek, and responsive.
+            </p>
+            <ul className="space-y-2 text-sm text-sky-50/90">
+              <li className="flex items-start gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-purple-400 mt-1" />
+                <span>Orbit controls active—just scroll to see the motion.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan-300 mt-1" />
+                <span>Labels: Reservo phoneless agent, GPT guide, clusters, Discord, overflow voice agent, multilingual onboarding.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 mt-1" />
+                <span>Ready for additional model tests—just swap the preferred model in the API block above.</span>
+              </li>
+            </ul>
+          </div>
+          <div className="order-1 lg:order-2 relative">
+            <div className="absolute -inset-8 bg-gradient-to-tr from-cyan-400/10 via-purple-400/10 to-transparent blur-3xl" aria-hidden />
+            <ElasticDemoCanvas demos={demos} />
+          </div>
+        </div>
+      </SectionShell>
+
+      <footer className="py-16 relative z-10">
+        <div className="max-w-6xl mx-auto px-6 grid gap-6 md:grid-cols-[1.1fr_0.9fr] items-center">
+          <div className="space-y-3">
+            <p className="text-sm uppercase tracking-[0.22em] text-sky-200/80">Contact</p>
+            <p className="text-3xl font-extrabold text-sky-50">Let&apos;s launch the next interactive résumé</p>
+            <p className="text-slate-200/80 text-sm leading-relaxed">
+              Voice agents, dark-sleek websites, Discord-powered classrooms, and Reservo booking flows—all in one
+              scroll. I build fast and keep communication clear.
+            </p>
+          </div>
+          <div className="glass-card">
+            <div className="flex items-center gap-3 mb-4">
+              <motion.img
+                src={LOGO_SRC}
+                alt={`${BRAND_NAME} footer mark`}
+                className="h-10 w-auto drop-shadow-md logo-spin"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 10, ease: "linear", repeat: Infinity }}
+              />
+              <div>
+                <p className="text-xs uppercase tracking-[0.3em] text-sky-200/80">{BRAND_NAME}</p>
+                <p className="text-slate-100/90 text-sm">Dark blue, sleek, professional.</p>
+              </div>
+            </div>
+            <div className="space-y-2 text-sm text-slate-100/90">
+              <p>
+                <span className="text-slate-300/80">Phone</span> · <a className="link" href="tel:+529999053013">+52 999 905 3013</a>
+              </p>
+              <p>
+                <span className="text-slate-300/80">Email</span> ·
+                <a className="link" href="mailto:eduardoguzmanq@gmail.com"> eduardoguzmanq@gmail.com</a>
+              </p>
+              <p>
+                <span className="text-slate-300/80">Discord</span> · <span className="text-white/90">Live widget above</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }
