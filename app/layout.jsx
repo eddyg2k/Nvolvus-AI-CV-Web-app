@@ -4,8 +4,8 @@ import { Inter } from "next/font/google";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Eddy Guzman — Interactive Resume for Nvolvus",
-  description: "GHL setup & automation • WordPress funnels • Voice AI • English/Spanish."
+  title: "Prospectivity — Scroll-first AI résumé",
+  description: "Dark-blue, 3D résumé for Eddy Guzman: phoneless AI, Reservo booking flows, Discord classroom demos.",
 };
 
 export default function RootLayout({ children }) {
